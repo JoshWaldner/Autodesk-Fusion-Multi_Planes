@@ -66,7 +66,9 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     BasePlane.addSelectionFilter("PlanarFaces") #https://help.autodesk.com/view/fusion360/ENU/?guid=GUID-03033DE6-AD8E-46B3-B4E6-DADA8D389E4E
     BasePlane.addSelectionFilter("ConstructionPlanes")
     planeqty = inputs.addIntegerSpinnerCommandInput("PlaneQTY", "Number of Planes", 1, 100, 1, PlaneQTY)
-    Value = inputs.addValueInput("Value", "Value", "in", adsk.core.ValueInput.createByReal(DistValue))
+    Distance = inputs.addDistanceValueCommandInput("Value", "Value", adsk.core.ValueInput.createByReal(DistValue))
+    Distance.isEnabled = False
+    Distance.isVisible = False
     # TODO Connect to the events that are needed by this command.
     futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
     futil.add_handler(args.command.inputChanged, command_input_changed, local_handlers=local_handlers)
@@ -109,7 +111,19 @@ def command_preview(args: adsk.core.CommandEventArgs):
 def command_input_changed(args: adsk.core.InputChangedEventArgs):
     changed_input = args.input
     inputs = args.inputs
+    selection_input: adsk.core.SelectionCommandInput = inputs.itemById('BasePlane')
+    distance_input: adsk.core.DistanceValueCommandInput = inputs.itemById('Value')
+    if changed_input.id == selection_input.id:
+        if selection_input.selectionCount > 0:
+            selection = selection_input.selection(0)
+            selection_point = selection.point
+            selected_entity = selection.entity
+            plane = selected_entity.geometry
 
+            distance_input.setManipulator(selection_point, plane.normal)
+            distance_input.expression = "10mm * 2"
+            distance_input.isEnabled = True
+            distance_input.isVisible = True
     # General logging for debug.
     #futil.log(f'{CMD_NAME} Input Changed Event fired from a change to {changed_input.id}')
 
